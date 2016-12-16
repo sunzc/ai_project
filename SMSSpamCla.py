@@ -25,12 +25,17 @@ class SMSSpamCla:
 		self.train_data, self.train_target, self.test_data, self.test_target = self.extract_data_target(data_path, train_rate)
 		self.target_names = ['spam','ham']
 
-	def get_train_vector(self, percent):
+	def get_train_vector(self, percent, token_pat):
 		self.bound = int(len(self.train_data)/100) * percent
 
-		self.count_vect = CountVectorizer()
+		self.count_vect = CountVectorizer(token_pattern = token_pat)
+		self.tokenizer = self.count_vect.build_tokenizer()
 		self.X = self.count_vect.fit_transform(self.train_data[:self.bound])
 		self.Y = self.train_target[:self.bound]
+
+	def preprocess(self, msg):
+		# replace numbers with 'N' to preserve the pattern of phone numbers
+		pass
 
 	def extract_data_target(self, data_path, train_rate):
 		corpus = open(data_path, 'r').readlines()
@@ -96,13 +101,30 @@ class SMSSpamCla:
 			print("ham : " + msg)
 
 if __name__ == "__main__":
-	cla = SMSSpamCla(0.3, './data/SMSSpamCollection')
-	cla.get_train_vector(percent = 100)
+	tok1 = u'(?u)\\b\\w+\\w*\\b'
+	tok2 = u'(?u)\\b\\w+[\\-\\.\\,\\:]*\\w*\\b'
+
+	print("Result by cla1: using tok1:"+tok1)
+	cla1 = SMSSpamCla(0.3, './data/SMSSpamCollection')
+	cla1.get_train_vector(100, tok1)
 	#cla.train_nb()
-	cla.train_svm()
-	cla.get_result()
+	cla1.train_svm()
+	cla1.get_result()
+
+	print("Result by cla2: using tok2:"+tok2)
+	cla2 = SMSSpamCla(0.3, './data/SMSSpamCollection')
+	cla2.get_train_vector(100, tok2)
+	#cla.train_nb()
+	cla2.train_svm()
+	cla2.get_result()
 
 	msg = "test"
 	while msg != "":
 		msg = input('Enter a SMS:')
-		cla.predict(msg)
+		print("Result by cla1:")
+		print(cla1.tokenizer(msg))
+		cla1.predict(msg)
+
+		print("Result by cla2:")
+		print(cla2.tokenizer(msg))
+		cla2.predict(msg)
