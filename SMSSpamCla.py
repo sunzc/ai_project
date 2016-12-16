@@ -4,6 +4,11 @@
 # Data: 12/15/2016
 
 import random
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import SVC
+from sklearn import metrics
+import matplotlib.pyplot as plt
 
 class SMSSpamCla:
 	"""
@@ -19,6 +24,13 @@ class SMSSpamCla:
 	def __init__(self, train_rate, data_path):
 		self.train_data, self.train_target, self.test_data, self.test_target = self.extract_data_target(data_path, train_rate)
 		self.target_names = ['spam','ham']
+
+	def get_train_vector(self, percent):
+		self.bound = int(len(self.train_data)/100) * percent
+
+		self.count_vect = CountVectorizer()
+		self.X = self.count_vect.fit_transform(self.train_data[:self.bound])
+		self.Y = self.train_target[:self.bound]
 
 	def extract_data_target(self, data_path, train_rate):
 		corpus = open(data_path, 'r').readlines()
@@ -62,13 +74,35 @@ class SMSSpamCla:
 
 		return train_data, train_target, test_data, test_target
 
+	def train_nb(self):
+		self.cla = MultinomialNB().fit(self.X, self.Y)
+
+	def train_svm(self):
+		self.cla = SVC(kernel = 'linear', class_weight = 'balanced').fit(self.X, self.Y)
+
+	def get_result(self):
+		X_test = self.count_vect.transform(self.test_data)
+		prediction = self.cla.predict(X_test)
+		print(metrics.classification_report(self.test_target, prediction, target_names=self.target_names))
+
 	def predict(self, msg):
-		# TODO
-		pass
+		test_data = []
+		test_data.append(msg)
+		X_test = self.count_vect.transform(test_data)
+		prediction = self.cla.predict(X_test)
+		if prediction[0] == -1:
+			print("spam : " + msg)
+		else:
+			print("ham : " + msg)
 
 if __name__ == "__main__":
 	cla = SMSSpamCla(0.3, './data/SMSSpamCollection')
-	print(len(cla.train_data))
-	print(len(cla.train_target))
-	print(len(cla.test_data))
-	print(len(cla.test_target))
+	cla.get_train_vector(percent = 100)
+	#cla.train_nb()
+	cla.train_svm()
+	cla.get_result()
+
+	msg = "test"
+	while msg != "":
+		msg = input('Enter a SMS:')
+		cla.predict(msg)
