@@ -7,6 +7,7 @@ import re
 import random
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn import metrics
 from sklearn.metrics import matthews_corrcoef
@@ -83,11 +84,23 @@ class SMSSpamCla:
 
 		return train_data, train_target, test_data, test_target
 
-	def train_nb(self):
+	def train_mnb(self):
 		self.cla = MultinomialNB().fit(self.X, self.Y)
+
+	def train_gnb(self):
+		self.cla = GaussianNB().fit(self.X.toarray(), self.Y)
 
 	def train_svm(self):
 		self.cla = SVC(kernel = 'linear', class_weight = 'balanced').fit(self.X, self.Y)
+
+	def train(self, model_id):
+		self.model_id = model_id
+		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_svm}
+		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"Support Vector Machine"}
+
+		self.models[model_id]()
+
+		return self.model_names[model_id]
 
 	def spam_caught(self, y_true, y_pred):
 		spam_total = 0
@@ -97,6 +110,7 @@ class SMSSpamCla:
 				spam_total += 1
 				if y_pred[i] == -1:
 					spam_caught += 1
+		print("Spam Total: " + str(spam_total) + " Spam Caught: "+ str(spam_caught))
 		return spam_caught/spam_total
 
 	def block_ham(self, y_true, y_pred):
@@ -107,11 +121,16 @@ class SMSSpamCla:
 				ham_total += 1
 				if y_pred[i] == -1:
 					ham_block += 1
+		print("Ham Total: " + str(ham_total) + " Ham Blocked: "+ str(ham_block))
 		return ham_block/ham_total
 
 	def get_result(self):
 		X_test = self.count_vect.transform(self.test_data)
-		prediction = self.cla.predict(X_test)
+		if self.model_id == 1:
+			# Gaussian NB require dense array
+			prediction = self.cla.predict(X_test.toarray())
+		else:
+			prediction = self.cla.predict(X_test)
 		print(metrics.classification_report(self.test_target, prediction, target_names=self.target_names))
 		print("matthews_corrcoef:" + str(matthews_corrcoef(self.test_target, prediction)))
 		print("SC:" + str(self.spam_caught(self.test_target, prediction)))
@@ -121,37 +140,48 @@ class SMSSpamCla:
 		test_data = []
 		test_data.append(self.preprocess(msg))
 		X_test = self.count_vect.transform(test_data)
-		prediction = self.cla.predict(X_test)
+
+		if self.model_id == 1:
+			# Gaussian NB require dense array
+			prediction = self.cla.predict(X_test.toarray())
+		else:
+			prediction = self.cla.predict(X_test)
+
 		if prediction[0] == -1:
 			print("spam : " + msg)
 		else:
 			print("ham : " + msg)
 
 if __name__ == "__main__":
+	data_path = './data/SMSSpamCollection'
 	tok1 = u'(?u)\\b\\w+\\w*\\b'
 	tok2 = u'(?u)\\b\\w+[\\-\\.\\,\\:]*\\w*\\b'
+	tok_pats = [tok1, tok2]
+	train_rates = [x*0.1 for x in range(3,4)]
+	cla_nums = 3
 
-	print("Result by cla1: using tok1:"+tok1)
-	cla1 = SMSSpamCla(0.3, './data/SMSSpamCollection')
-	cla1.get_train_vector(100, tok1)
-	#cla.train_nb()
-	cla1.train_svm()
-	cla1.get_result()
+	model_name = ""
+	for i in range(cla_nums):
+		for tr in range(len(train_rates)):
+			for j in range(len(tok_pats)):
+				cla = SMSSpamCla(train_rates[tr], data_path)
+				print(tok_pats[j])
+				cla.get_train_vector(100, tok_pats[j])
+				model_name = cla.train(i)
+				print("Results: %s ,train_rate: %f, tok_pats:%s" % (model_name, train_rates[tr], tok_pats[j]))
+				cla.get_result()
 
-	print("Result by cla2: using tok2:"+tok2)
-	cla2 = SMSSpamCla(0.3, './data/SMSSpamCollection')
-	cla2.get_train_vector(100, tok2)
-	#cla.train_nb()
-	cla2.train_svm()
-	cla2.get_result()
+	#Best Configuration
+	bc_train_rates = 0.3
+	bc_tok_id = 0
+	bc_model_id = 1
+	cla = SMSSpamCla(bc_train_rates, data_path)
+	cla.get_train_vector(100, tok_pats[bc_tok_id])
+	model_name = cla.train(bc_model_id)
+	print("Results: %s ,train_rate: %f, tok_pats:%s" % (model_name, bc_train_rates, tok_pats[bc_tok_id]))
 
 	msg = "test"
 	while msg != "":
 		msg = input('Enter a SMS:')
-		print("Result by cla1:")
-		print(cla1.tokenizer(msg))
-		cla1.predict(msg)
-
-		print("Result by cla2:")
-		print(cla2.tokenizer(msg))
-		cla2.predict(msg)
+		print(cla.tokenizer(msg))
+		cla.predict(msg)
