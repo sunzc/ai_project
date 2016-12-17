@@ -165,11 +165,11 @@ if __name__ == "__main__":
 		for tr in range(len(train_rates)):
 			for j in range(len(tok_pats)):
 				cla = SMSSpamCla(train_rates[tr], data_path)
-				print(tok_pats[j])
 				cla.get_train_vector(100, tok_pats[j])
 				model_name = cla.train(i)
 				print("Results: %s ,train_rate: %f, tok_pats:%s" % (model_name, train_rates[tr], tok_pats[j]))
 				cla.get_result()
+				print("")
 
 	#Best Configuration
 	bc_train_rates = 0.3
