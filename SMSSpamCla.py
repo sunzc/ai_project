@@ -11,6 +11,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import BaggingClassifier
 from sklearn.svm import SVC
 from sklearn import metrics
 from sklearn.metrics import matthews_corrcoef
@@ -113,10 +114,14 @@ class SMSSpamCla:
 	def train_tree(self):
 		self.cla = DecisionTreeClassifier().fit(self.X, self.Y)
 
+	def train_ensemble(self):
+		self.cla = BaggingClassifier(KNeighborsClassifier(n_neighbors = 1), max_samples = 0.5, max_features = 0.5).fit(self.X, self.Y)
+		#self.cla = BaggingClassifier(SVC(kernel = 'linear', class_weight = 'balanced'), max_samples = 0.5, max_features = 0.5).fit(self.X, self.Y)
+
 	def train(self, model_id):
 		self.model_id = model_id
-		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm, 4:self.train_neighbor, 5:self.train_tree}
-		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine", 4:"KNeighborsClassifier", 5:"DecisionTreeClassifier"}
+		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm, 4:self.train_neighbor, 5:self.train_tree, 6:self.train_ensemble}
+		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine", 4:"KNeighborsClassifier", 5:"DecisionTreeClassifier", 6:"Ensemble Bagging KNeighborsClassifier"}
 
 		self.models[model_id]()
 
@@ -193,7 +198,7 @@ if __name__ == "__main__":
 			for j in range(len(tok_pats)):
 				cla = SMSSpamCla(train_rates[tr], data_path)
 				cla.get_train_vector(100, tok_pats[j])
-				model_name = cla.train(5)
+				model_name = cla.train(6)
 				print("Results: %s ,train_rate: %f, tok_pats:%s" % (model_name, train_rates[tr], tok_pats[j]))
 				cla.get_result()
 				print("")
