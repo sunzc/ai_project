@@ -3,11 +3,13 @@
 # Author: Zhichuang Sun
 # Data: 12/15/2016
 
+import re
 import random
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.svm import SVC
 from sklearn import metrics
+from sklearn.metrics import matthews_corrcoef
 import matplotlib.pyplot as plt
 
 class SMSSpamCla:
@@ -35,7 +37,7 @@ class SMSSpamCla:
 
 	def preprocess(self, msg):
 		# replace numbers with 'N' to preserve the pattern of phone numbers
-		pass
+		return re.sub(r'\d',r'N',msg)
 
 	def extract_data_target(self, data_path, train_rate):
 		corpus = open(data_path, 'r').readlines()
@@ -56,13 +58,15 @@ class SMSSpamCla:
 				continue
 
 			if (len(fields) == 2):
-				data.append(fields[1])
+				cooked_msg = self.preprocess(fields[1])
+				data.append(cooked_msg)
 			else:
 				msg = ""
 				for i in range(1,len(fields)):
 					msg += fields[i]
 					print(fields[i])
-				data.append(msg)
+				cooked_msg = self.preprocess(msg)
+				data.append(cooked_msg)
 
 		shuffled_idx = list(range(len(data)))
 		random.shuffle(shuffled_idx)
@@ -85,14 +89,37 @@ class SMSSpamCla:
 	def train_svm(self):
 		self.cla = SVC(kernel = 'linear', class_weight = 'balanced').fit(self.X, self.Y)
 
+	def spam_caught(self, y_true, y_pred):
+		spam_total = 0
+		spam_caught = 0
+		for i in range(len(y_true)):
+			if y_true[i] == -1:
+				spam_total += 1
+				if y_pred[i] == -1:
+					spam_caught += 1
+		return spam_caught/spam_total
+
+	def block_ham(self, y_true, y_pred):
+		ham_total = 0
+		ham_block = 0
+		for i in range(len(y_true)):
+			if y_true[i] == 1:
+				ham_total += 1
+				if y_pred[i] == -1:
+					ham_block += 1
+		return ham_block/ham_total
+
 	def get_result(self):
 		X_test = self.count_vect.transform(self.test_data)
 		prediction = self.cla.predict(X_test)
 		print(metrics.classification_report(self.test_target, prediction, target_names=self.target_names))
+		print("matthews_corrcoef:" + str(matthews_corrcoef(self.test_target, prediction)))
+		print("SC:" + str(self.spam_caught(self.test_target, prediction)))
+		print("BH:" + str(self.block_ham(self.test_target, prediction)))
 
 	def predict(self, msg):
 		test_data = []
-		test_data.append(msg)
+		test_data.append(self.preprocess(msg))
 		X_test = self.count_vect.transform(test_data)
 		prediction = self.cla.predict(X_test)
 		if prediction[0] == -1:
