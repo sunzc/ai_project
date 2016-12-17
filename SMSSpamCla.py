@@ -8,6 +8,7 @@ import random
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.svm import SVC
 from sklearn import metrics
 from sklearn.metrics import matthews_corrcoef
@@ -90,13 +91,24 @@ class SMSSpamCla:
 	def train_gnb(self):
 		self.cla = GaussianNB().fit(self.X.toarray(), self.Y)
 
+	def binary_array(self, arr):
+		xx = arr
+		for x in range(len(xx)):
+			for y in range(len(xx[x])):
+				if xx[x][y] != 0:
+					xx[x][y] = 1
+		return xx
+
+	def train_bnb(self):
+		self.cla = BernoulliNB().fit(self.binary_array(self.X.toarray()), self.Y)
+
 	def train_svm(self):
 		self.cla = SVC(kernel = 'linear', class_weight = 'balanced').fit(self.X, self.Y)
 
 	def train(self, model_id):
 		self.model_id = model_id
-		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_svm}
-		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"Support Vector Machine"}
+		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm}
+		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine"}
 
 		self.models[model_id]()
 
@@ -129,6 +141,9 @@ class SMSSpamCla:
 		if self.model_id == 1:
 			# Gaussian NB require dense array
 			prediction = self.cla.predict(X_test.toarray())
+		elif self.model_id == 2:
+			# Bernoulli NB require binary value
+			prediction = self.cla.predict(self.binary_array(X_test.toarray()))
 		else:
 			prediction = self.cla.predict(X_test)
 		print(metrics.classification_report(self.test_target, prediction, target_names=self.target_names))
@@ -144,6 +159,9 @@ class SMSSpamCla:
 		if self.model_id == 1:
 			# Gaussian NB require dense array
 			prediction = self.cla.predict(X_test.toarray())
+		elif self.model_id == 2:
+			# Bernoulli NB require binary value
+			prediction = self.cla.predict(self.binary_array(X_test.toarray()))
 		else:
 			prediction = self.cla.predict(X_test)
 
