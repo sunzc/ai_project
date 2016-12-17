@@ -10,6 +10,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn import metrics
 from sklearn.metrics import matthews_corrcoef
@@ -109,10 +110,13 @@ class SMSSpamCla:
 	def train_neighbor(self):
 		self.cla = KNeighborsClassifier(n_neighbors = 1).fit(self.X, self.Y)
 
+	def train_tree(self):
+		self.cla = DecisionTreeClassifier().fit(self.X, self.Y)
+
 	def train(self, model_id):
 		self.model_id = model_id
-		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm, 4:self.train_neighbor}
-		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine", 4:"KNeighborsClassifier"}
+		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm, 4:self.train_neighbor, 5:self.train_tree}
+		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine", 4:"KNeighborsClassifier", 5:"DecisionTreeClassifier"}
 
 		self.models[model_id]()
 
@@ -189,7 +193,7 @@ if __name__ == "__main__":
 			for j in range(len(tok_pats)):
 				cla = SMSSpamCla(train_rates[tr], data_path)
 				cla.get_train_vector(100, tok_pats[j])
-				model_name = cla.train(4)
+				model_name = cla.train(5)
 				print("Results: %s ,train_rate: %f, tok_pats:%s" % (model_name, train_rates[tr], tok_pats[j]))
 				cla.get_result()
 				print("")
