@@ -109,7 +109,7 @@ class SMSSpamCla:
 		self.cla = SVC(kernel = 'linear', class_weight = 'balanced').fit(self.X, self.Y)
 
 	def train_neighbor(self):
-		self.cla = KNeighborsClassifier(n_neighbors = 1).fit(self.X, self.Y)
+		self.cla = KNeighborsClassifier(n_neighbors = self.K).fit(self.X, self.Y)
 
 	def train_tree(self):
 		self.cla = DecisionTreeClassifier().fit(self.X, self.Y)
@@ -118,11 +118,12 @@ class SMSSpamCla:
 		self.cla = BaggingClassifier(KNeighborsClassifier(n_neighbors = 1), max_samples = 0.5, max_features = 0.5).fit(self.X, self.Y)
 		#self.cla = BaggingClassifier(SVC(kernel = 'linear', class_weight = 'balanced'), max_samples = 0.5, max_features = 0.5).fit(self.X, self.Y)
 
-	def train(self, model_id):
+	def train(self, model_id, k):
 		self.model_id = model_id
 		self.models = {0:self.train_mnb, 1:self.train_gnb, 2:self.train_bnb, 3:self.train_svm, 4:self.train_neighbor, 5:self.train_tree, 6:self.train_ensemble}
 		self.model_names = {0:"MultinomialNB",1:"GaussianNB", 2:"BernoulliNB", 3:"Support Vector Machine", 4:"KNeighborsClassifier", 5:"DecisionTreeClassifier", 6:"Ensemble Bagging KNeighborsClassifier"}
 
+		self.K = k
 		self.models[model_id]()
 
 		return self.model_names[model_id]
@@ -214,22 +215,14 @@ if __name__ == "__main__":
 	data_path = './data/SMSSpamCollection'
 	tok1 = u'(?u)\\b\\w+\\w*\\b'
 	tok2 = u'(?u)\\b\\w+[\\-\\.\\,\\:]*\\w*\\b'
-	tok_pats = [tok1, tok2]
-	train_rates = [x*0.1 for x in range(3,4)]
-	cla_nums = 7
-
-	model_name = ""
 	results = []
-	for i in range(cla_nums):
-		for j in range(len(tok_pats)):
-			cla = SMSSpamCla(0.3, data_path)
-			cla.get_train_vector(100, tok_pats[j])
-			model_name = cla.train(i)
-			print("Results: %s ,tok_pats:%s" % (model_name, tok_pats[j]))
-			res = cla.get_result()
-			label = model_name + "+" + "tok"+str(j+1)
-			results.append((label,res, cla))
-			print("")
+	for K in range(1,10):
+		cla = SMSSpamCla(0.3, data_path)
+		cla.get_train_vector(100, tok1)
+		model_name = cla.train(4, K)
+		res = cla.get_result()
+		label = model_name + "+" + "tok1,k="+str(K)
+		results.append((label,res, cla))
 
 	sorted_results = sorted(results, key=lambda record: (1 - record[1][3]))
 	print("Classifier "+"\t\t\t\t\tSC%\tBH%\tAcc%\tMCC")
@@ -237,12 +230,35 @@ if __name__ == "__main__":
 		tabs = int(len(x[0])/8)
 		print (x[0] + ((6-tabs) * "\t") + "%1.3f\t%1.3f\t%1.3f\t%1.3f" %(x[1][0], x[1][1], x[1][2], x[1][3]))
 
-	print("")
-
-	msg = "test"
-	while msg != "":
-		msg = input('Enter a SMS:')
-		for x in sorted_results:
-			cla = x[2]
-			print(x[0]+"(Acc:%1.3f)"%(x[1][2]))
-			cla.predict(msg)
+#	tok_pats = [tok1, tok2]
+#	train_rates = [x*0.1 for x in range(3,4)]
+#	cla_nums = 7
+#
+#	model_name = ""
+#	results = []
+#	for i in range(cla_nums):
+#		for j in range(len(tok_pats)):
+#			cla = SMSSpamCla(0.3, data_path)
+#			cla.get_train_vector(100, tok_pats[j])
+#			model_name = cla.train(i)
+#			print("Results: %s ,tok_pats:%s" % (model_name, tok_pats[j]))
+#			res = cla.get_result()
+#			label = model_name + "+" + "tok"+str(j+1)
+#			results.append((label,res, cla))
+#			print("")
+#
+#	sorted_results = sorted(results, key=lambda record: (1 - record[1][3]))
+#	print("Classifier "+"\t\t\t\t\tSC%\tBH%\tAcc%\tMCC")
+#	for x in sorted_results:
+#		tabs = int(len(x[0])/8)
+#		print (x[0] + ((6-tabs) * "\t") + "%1.3f\t%1.3f\t%1.3f\t%1.3f" %(x[1][0], x[1][1], x[1][2], x[1][3]))
+#
+#	print("")
+#
+#	msg = "test"
+#	while msg != "":
+#		msg = input('Enter a SMS:')
+#		for x in sorted_results:
+#			cla = x[2]
+#			print(x[0]+"(Acc:%1.3f)"%(x[1][2]))
+#			cla.predict(msg)
