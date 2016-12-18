@@ -1,0 +1,16 @@
+AI Project: Spam SMS Message Filter
+directory hierarchy
+./
+    data/
+        readme			// readme for data file SMSSpamCollection
+        SMSSpamCollection	// train & test SMS data collected by researchers, shared on UCI website
+   SMSSpamCla.py 		// code
+   README  			// this README file
+
+Explanation for SMSSpamCla.py
+To run it:
+	./SMSSpamCla.py
+
+SMSSpamCla.py will read data from the data/ directory, 30% of the data will be used for training, the other for testing. It will collect results for different models, and rank the results according to the MCC value. After that, it will pop up a input prompt, ask for entering a SMS message, it will output the result, spam or ham, provided by all the models trained before.
+
+
